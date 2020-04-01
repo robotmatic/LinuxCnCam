@@ -1,5 +1,5 @@
 # LinuxCnCam
-Biblioteca de Rutinas de Codigos G
+Generador de Trayectorias cnc mediante Codigos G
 ----------------------------------------------------------------------------------------------------------------------------
 
 Proyecto                     >  LinuxCnCam
