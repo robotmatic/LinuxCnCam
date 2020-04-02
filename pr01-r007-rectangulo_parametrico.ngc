@@ -1,0 +1,686 @@
+(                                             Proyecto LinuxCnCam                                                 )
+(                                      Rectangulo Parametrico Z Constante                                         )
+
+(                                Autor > N.E.Gonzalez  cncrobotmatic@gmail.com                                    )
+(                                           21-7-19  revision 0.0.7                                               )
+
+(                    Desarrollo de codigo en progreso-no funcionan todos las funciones !!!!!!                     )
+
+
+
+
+
+
+G0 G90 G40 G49 G80 G17 G21             ( Bloque de seguridad )
+
+
+
+
+
+
+(--------------------------------------------Datos herramienta----------------------------------------------------)
+
+#<_tool_numero>       = 1           (Posicion en magazine herramientas)
+#<_tool_diametro>     = 10          (Diametro de la herramienta)                                       
+#<_tool_filos>        = 1           (Numero de filos de corte de la herramienta)
+#<_tool_giro>         = 3           (Giro > [3]=Horario[CW]  [4]=Anti Horario [CWW] )                                                 
+#<_tool_VC>           = 200         (Velocidad de Corte expresado en Metros/Minuto)                                        
+#<_tool_carga_avance> = 0.2         (Carga de material lateral de la herramienta)
+#<_tool_carga_bajada> = 0.025       (Carga de material vertical de la herramienta)
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+
+(----------------------------------------------Datos Posicionamiento--------------------------------------------- )
+
+#<_cero_work>       = 1             ( 1->54 to 6->59 )
+#<_rotacion_work>   = 0
+
+#<_cero_x>          = 0             (Posicion cero pieza sobre ejeX)
+#<_cero_y>          = 0             (Posicion cero piezas sobre ejeY)
+#<_cero_z>          = 0             (Posicion cero piezas sobre ejeZ)
+
+#<_planorapido>     = 50            (Posicion segura para movimiento rapido de la herramienta sobre ejeZ)
+#<_planoreferencia> = 1             (Posicion segura para movimiento razante de la herramienta sobre ejeZ)
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+(----------------------------------------------Datos Geometricos------------------------------------------------- )
+
+#<_longuitud_x>     = 250           (longuitud sobre ejeX)
+#<_longuitud_y>     = 107           (Longuitud sobre ejeY)
+#<_longuitud_z>     = 10.25         (Altura total del perfil Ranura-Macho-Hembra)
+
+#<_pasada_z>        = 5             (Paso de la pasada Z constante) 
+#<_angulo_z>        = 0             (Angulo de las paredes en perfil Macho-Hembra)
+
+#<_perfil>          = 2             ( Perfil  > [0]=ranura [1]=Macho [2]=hembra )
+#<_tipo>            = 0             ( Tipo    > [0]=desbaste [1]=terminacion [2]=desbaste+terminacion )
+
+#<_vertice>         = 1             ( Vertice > [0]=null [1]=radio [2]=chaflan )
+#<_vertice_medida>  = 10            ( Medida  > radio o chaflan )
+
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+
+(----------------------------------------------Datos Bajada herramienta------------------------------------------ )
+
+#<_tipo_bajada>     = 2             ([0]=vertical [1]=rampa [2]=helicoidal)  
+#<_angulo_bajada>   = 2             (Angulo bajada en grados para rampa-helice  [2 Grado maximo recomendable])
+#<_medida_bajada>   =1.5            (Medida de bajada para rampa-helice en unidades de radio de herramienta)
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+
+
+
+
+
+
+
+
+
+
+(-----------------------------------------Calculos----------------------------------------------------------------)
+
+#<_tool_rpm>        = ROUND[[318.3*#<_tool_VC>]/#<_tool_diametro>]       
+#<_tool_avance>     = ROUND[#<_tool_rpm>*#<_tool_filos>*#<_tool_carga_avance>]  
+#<_tool_bajada>     = ROUND[#<_tool_rpm>*#<_tool_filos>*#<_tool_carga_bajada>]
+
+G10 L1 P#<_tool_numero> R[#<_tool_diametro>/2] 
+G10 L2 P#<_cero_work>  R#<_rotacion_work>                                  ( Define Cero Trabajo y rotacion plano )
+
+#120=[#<_longuitud_z>/#<_pasada_z>]                                        ( Cantidad De Pasadas )
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+
+
+
+
+(-------------------------------------Verificacion De Ingresos De Datos-------------------------------------------)
+
+
+O200 IF [[#<_vertice_medida> GT [[#<_longuitud_x>]/2]] OR [#<_vertice_medida> GT [[#<_longuitud_y>]/2]]]  
+
+         (MSG,"Vertice mayor a cara")
+     M30 
+     
+O200 ENDIF
+                                 
+(-----------------------------------------------------------------------------------------------------------------)
+
+
+
+
+
+
+
+
+
+
+
+
+
+(<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< rutinas RANURA >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>)
+
+O100 SUB                           ( Rutina vertice= NULL )
+
+O120 REPEAT [#120]
+G1G91Z-#<_pasada_z> F#<_tool_bajada>                       
+X-#<_longuitud_x>F#<_tool_avance>
+Y-#<_longuitud_y>                    
+X#<_longuitud_x>
+Y#<_longuitud_y>
+O120 ENDREPEAT
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada> 
+G91X-#<_longuitud_x>F#<_tool_avance>
+Y-#<_longuitud_y>                    
+X#<_longuitud_x>
+Y#<_longuitud_y>
+
+O100 END SUB
+
+O101 SUB                           ( Rutina vertice= 1 [radio] )
+
+O121 REPEAT [#120]
+G1G91Z-#<_pasada_z> F#<_tool_bajada>
+G1X-[#<_longuitud_x>-[#<_vertice_medida>*2]]F#<_tool_avance>
+G3X-#<_vertice_medida>Y-#<_vertice_medida>R#<_vertice_medida>
+G1Y-[#<_longuitud_y>-[#<_vertice_medida>*2]]
+G3X#<_vertice_medida>Y-#<_vertice_medida>R#<_vertice_medida>
+G1X[#<_longuitud_x>-[#<_vertice_medida>*2]]
+G3X#<_vertice_medida>Y#<_vertice_medida>R#<_vertice_medida>
+G1Y[#<_longuitud_y>-[#<_vertice_medida>*2]]
+G3X-#<_vertice_medida>Y#<_vertice_medida>R#<_vertice_medida>
+O121 ENDREPEAT
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada> 
+G1G91X-[#<_longuitud_x>-[#<_vertice_medida>*2]]F#<_tool_avance>
+G3X-#<_vertice_medida>Y-#<_vertice_medida>R#<_vertice_medida>
+G1Y-[#<_longuitud_y>-[#<_vertice_medida>*2]]
+G3X#<_vertice_medida>Y-#<_vertice_medida>R#<_vertice_medida>
+G1X[#<_longuitud_x>-[#<_vertice_medida>*2]]
+G3X#<_vertice_medida>Y#<_vertice_medida>R#<_vertice_medida>
+G1Y[#<_longuitud_y>-[#<_vertice_medida>*2]]
+G3X-#<_vertice_medida>Y#<_vertice_medida>R#<_vertice_medida>
+
+O101 ENDSUB
+
+O102 SUB                           ( Rutina vertice= 2 [chaflan] )
+
+O122 REPEAT [#120]
+G1G91Z-#<_pasada_z> F#<_tool_bajada> 
+X-[#<_longuitud_x>-[#<_vertice_medida>*2]]F#<_tool_avance>
+X-#<_vertice_medida>Y-#<_vertice_medida>
+Y-[#<_longuitud_y>-[#<_vertice_medida>*2]]
+X#<_vertice_medida>Y-#<_vertice_medida>
+X[#<_longuitud_x>-[#<_vertice_medida>*2]]
+X#<_vertice_medida>Y#<_vertice_medida>
+Y[#<_longuitud_y>-[#<_vertice_medida>*2]]
+X-#<_vertice_medida>Y#<_vertice_medida>
+
+
+O122 ENDREPEAT
+
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada> 
+G91X-[#<_longuitud_x>-[#<_vertice_medida>*2]]F#<_tool_avance>
+X-#<_vertice_medida>Y-#<_vertice_medida>
+Y-[#<_longuitud_y>-[#<_vertice_medida>*2]]
+X#<_vertice_medida>Y-#<_vertice_medida>
+X[#<_longuitud_x>-[#<_vertice_medida>*2]]
+X#<_vertice_medida>Y#<_vertice_medida>
+Y[#<_longuitud_y>-[#<_vertice_medida>*2]]
+X-#<_vertice_medida>Y#<_vertice_medida>
+O102 ENDSUB
+(<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>)
+
+
+
+
+
+
+
+
+(<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<< Rutinas Cajeras HEMBRAS >>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>)
+
+
+
+
+(-------------------------------------Rutina Bajas Hembras---------------------------------)
+
+O166 SUB
+
+#<aux_medida_bajada> = [#<_medida_bajada> * [#<_tool_diametro>/2]]
+
+O167 IF [#<_tipo_bajada> EQ 0]
+
+        (MSG,"Bajada Vertical")
+        G1G91Z-#<_pasada_z> F#<_tool_bajada> 
+
+O167 ELSE IF [#<_tipo_bajada> EQ 1]
+
+        (MSG,"Bajada Rampa")
+
+O167 ELSE IF [#<_tipo_bajada> EQ 2]
+
+        G1G91X#<aux_medida_bajada> F#<_tool_avance>
+
+        #121 = FIX[#<_pasada_z> / [TAN[#<_angulo_bajada>]*#<aux_medida_bajada>]]
+        #122 = [#<_pasada_z>-[#121*[[TAN[#<_angulo_bajada>]*#<aux_medida_bajada>]]]]
+
+        O168 REPEAT [#121]
+        G3I-#<aux_medida_bajada>J0Z-[TAN[#<_angulo_bajada>] * #<aux_medida_bajada>]
+        O168 ENDREPEAT
+        G3I-#<aux_medida_bajada>J0Z-#122
+        G1X-#<aux_medida_bajada>
+
+O167 ENDIF
+
+O166 ENDSUB
+
+(-------------------------------------------------------------------------------------------)
+
+
+
+
+O103 SUB  (--------------------------Rutina Hembra_V.Null--------------------------------- )
+
+O123 REPEAT [#120]
+
+G1G91Z-#<_pasada_z> F#<_tool_bajada> 
+X-[#<_aux_x>*2]F#<_tool_avance>                    
+Y-[#<_aux_y>*2]
+X[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+
+
+O120 DO
+
+#<_aux_x> = [#<_aux_x> - [#<_tool_diametro>*0.8]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]] 
+
+G1G91X-[#<_tool_diametro>*0.8]Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                        
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+O120 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]
+
+G0G91Z1
+X[[[#<_longuitud_x>/2]-[#<_tool_diametro>/2]]-#<_aux_x>] Y[[[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]-#<_aux_y>]
+G1Z-1F#<_tool_bajada>
+
+#<_aux_x> = [[#<_longuitud_x>/2]-[#<_tool_diametro>/2]]
+#<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+
+O123 ENDREPEAT
+
+
+
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada> 
+
+G91X-[#<_aux_x>*2] F#<_tool_avance>                    
+Y-[#<_aux_y>*2]
+X[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+
+O121 DO
+
+#<_aux_x> = [#<_aux_x> - [#<_tool_diametro>*0.8]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]] 
+
+G1G91X-[#<_tool_diametro>*0.8]Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                      
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+O121 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]
+
+
+O103 ENDSUB
+(--------------------------------------------------------------------------------------------)
+
+
+
+
+
+O104 SUB   (--------------------------Rutina Hembra_V.Radio--------------------------------- )
+
+
+
+
+O124 REPEAT [#120]
+O166 CALL                                                          (Llamada a rutina de bajada)
+G1X-[#<_aux_x>*2]F#<_tool_avance>   
+G3X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+G3X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X[#<_aux_x>*2]     
+G3X#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+G3X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+
+O120 DO   
+
+#<_aux_vertice_medida> = [#<_aux_vertice_medida> - [#<_tool_diametro>*0.8]]
+
+O125 IF[#<_aux_vertice_medida> GT 0]
+
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]]
+
+G1Y-[#<_tool_diametro>*0.8] F#<_tool_avance> 
+G2X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+G2X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X-[#<_aux_x>*2]     
+G2X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+G2X#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X[#<_aux_x>*2]
+
+
+O125 ELSEIF[#<_aux_vertice_medida> LT 0]
+
+#<_aux_x> = [[#<_aux_x> + [#<_aux_vertice_medida>+[#<_tool_diametro>*0.8]]-[#<_tool_diametro>*0.8]]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8] ]
+
+G1X-[-#<_aux_vertice_medida>] Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                      
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+#<_aux_vertice_medida>=0
+
+O125 ENDIF
+
+O120 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]  
+
+G0G91Z1
+X[[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]-#<_aux_x>] Y[[#<_longuitud_y>/2]-[#<_tool_diametro>/2]-#<_aux_y>]
+G1Z-1F#<_tool_bajada>
+
+
+#<_aux_x> = [[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]]
+#<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+#<_aux_vertice_medida> = #<_vertice_medida>
+
+O124 ENDREPEAT
+
+
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada>
+
+ 
+G1G91X-[#<_aux_x>*2]F#<_tool_avance>   
+G3X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+G3X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X[#<_aux_x>*2]     
+G3X#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+G3X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+
+O126 DO   
+
+#<_aux_vertice_medida> = [#<_aux_vertice_medida> - [#<_tool_diametro>*0.8]]
+
+O127 IF[#<_aux_vertice_medida> GT 0]
+
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]]
+
+G1Y-[#<_tool_diametro>*0.8] F#<_tool_avance> 
+G2X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+G2X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X-[#<_aux_x>*2]     
+G2X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+G2X#<_aux_vertice_medida>Y#<_aux_vertice_medida>R#<_aux_vertice_medida>
+G1X[#<_aux_x>*2]
+
+
+O127 ELSEIF[#<_aux_vertice_medida> LT 0]
+
+#<_aux_x> = [[#<_aux_x> + [#<_aux_vertice_medida>+[#<_tool_diametro>*0.8]]-[#<_tool_diametro>*0.8]]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8] ]
+
+G1X-[-#<_aux_vertice_medida>] Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                      
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+#<_aux_vertice_medida>=0
+
+O127 ENDIF
+
+O126 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]
+
+
+
+O104 ENDSUB
+
+
+
+
+O105 SUB                  (--------------------------Rutina Hembra_V.Chafan--------------------------------- ) 
+
+O124 REPEAT [#120]
+
+G1G91Z-#<_pasada_z> F#<_tool_bajada> 
+G1X-[#<_aux_x>*2]F#<_tool_avance>   
+X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+X[#<_aux_x>*2]     
+X#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+
+O120 DO   
+
+#<_aux_vertice_medida> = [#<_aux_vertice_medida> - [#<_tool_diametro>*0.8]]
+
+O125 IF[#<_aux_vertice_medida> GT 0]
+
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]]
+
+G1Y-[#<_tool_diametro>*0.8] F#<_tool_avance> 
+X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+X-[#<_aux_x>*2]     
+X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+X#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+X[#<_aux_x>*2]
+
+
+O125 ELSEIF[#<_aux_vertice_medida> LT 0]
+
+#<_aux_x> = [[#<_aux_x> + [#<_aux_vertice_medida>+[#<_tool_diametro>*0.8]]-[#<_tool_diametro>*0.8]]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8] ]
+
+G1X-[-#<_aux_vertice_medida>] Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                      
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+#<_aux_vertice_medida>=0
+
+O125 ENDIF
+
+O120 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]  
+
+G0G91Z1
+X[[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]-#<_aux_x>] Y[[#<_longuitud_y>/2]-[#<_tool_diametro>/2]-#<_aux_y>]
+G1Z-1F#<_tool_bajada>
+
+
+#<_aux_x> = [[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]]
+#<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+#<_aux_vertice_medida> = #<_vertice_medida>
+
+O124 ENDREPEAT
+
+
+G1G90Z[[#<_cero_z>]-[#<_longuitud_z>]]  F#<_tool_bajada>
+
+ 
+G1G91X-[#<_aux_x>*2]F#<_tool_avance>   
+X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+X[#<_aux_x>*2]     
+X#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+
+O126 DO   
+
+#<_aux_vertice_medida> = [#<_aux_vertice_medida> - [#<_tool_diametro>*0.8]]
+
+O127 IF[#<_aux_vertice_medida> GT 0]
+
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8]]
+
+G1Y-[#<_tool_diametro>*0.8] F#<_tool_avance> 
+X#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+Y-[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]                  
+X-#<_aux_vertice_medida>Y-#<_aux_vertice_medida>
+X-[#<_aux_x>*2]     
+X-#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+Y[[#<_aux_y>*2]-[#<_aux_vertice_medida>*2]]
+X#<_aux_vertice_medida>Y#<_aux_vertice_medida>
+X[#<_aux_x>*2]
+
+
+O127 ELSEIF[#<_aux_vertice_medida> LT 0]
+
+#<_aux_x> = [[#<_aux_x> + [#<_aux_vertice_medida>+[#<_tool_diametro>*0.8]]-[#<_tool_diametro>*0.8]]]
+#<_aux_y> = [#<_aux_y> - [#<_tool_diametro>*0.8] ]
+
+G1X-[-#<_aux_vertice_medida>] Y-[#<_tool_diametro>*0.8] F#<_tool_avance>                                      
+Y-[#<_aux_y>*2]
+X-[#<_aux_x>*2]
+Y[#<_aux_y>*2]
+X[#<_aux_x>*2]
+
+#<_aux_vertice_medida>=0
+
+O127 ENDIF
+
+O126 WHILE [[#<_aux_x> GE [#<_tool_diametro>*0.8]] AND [#<_aux_y> GE [#<_tool_diametro>*0.8]] ]
+
+
+
+O105 ENDSUB
+
+
+
+
+
+
+
+
+
+
+(---------------------------------------------Main-------------------------------------------)
+
+
+
+G53 G0 Z0                                                        ( Mandar a referencia eje z )
+
+T#<_tool_numero> M6                                              ( seleccion de tool y cambio )
+G0 G90 X#<_cero_x> Y#<_cero_y>  S#<_tool_rpm> M#<_tool_giro>     ( Punto de inico encendido husillo giro horario )
+G43 Z#<_planorapido> H#<_tool_numero> M8                         ( Compensacion de altura de tool + SOLUBLE )
+G64 P0.02                                                        ( Control de redondeo )
+
+
+O111 IF [#<_perfil> EQ 0]   (<---Evalua Tipo Perfil Ranura)
+
+
+                                   
+O110 IF[#<_vertice> EQ 0]   ( -----vertice vivo )
+
+     
+     G0G91 X[#<_longuitud_x>/2] Y[#<_longuitud_y>/2]   
+     G90 Z[#<_cero_z> + #<_planoreferencia>]                         
+     G1 Z#<_cero_z> F#<_tool_bajada> 
+     O100 call
+
+
+O110 ELSEIF[#<_vertice> EQ 1]   ( -----vertice radio )
+
+     G0G91 X[[#<_longuitud_x>/2]-#<_vertice_medida>] Y[#<_longuitud_y>/2]
+     G90 Z[#<_cero_z> + #<_planoreferencia>]                       
+     G1 Z#<_cero_z> F#<_tool_bajada>  
+     O101 call
+
+
+O110 ELSEIF[#<_vertice> EQ 2]   ( -----vertice chaflan )
+
+     G0G91 X[[#<_longuitud_x>/2]-#<_vertice_medida>] Y[#<_longuitud_y>/2]
+     G90 Z[#<_cero_z> + #<_planoreferencia>]                       
+     G1 Z#<_cero_z> F#<_tool_bajada> 
+     O102 call
+
+O110 ENDIF
+
+O111 ENDIF                  (<---Fin evaluacion Perfil Ranura)
+(--------------------------------------------------------------------------)
+
+
+
+
+
+O113 IF [#<_perfil> EQ 2]   (<---Evalua Tipo Perfil Hembra)
+
+
+
+O114 IF[#<_vertice> EQ 0]   ( -----hembra vertice vivo )
+
+     #<_aux_x> = [[#<_longuitud_x>/2]-[#<_tool_diametro>/2]]
+     #<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+     
+     G0G91 X#<_aux_x> Y#<_aux_y>   
+     G90 Z[#<_cero_z> + #<_planoreferencia>]                         
+     G1 Z#<_cero_z> F#<_tool_bajada> 
+     O103 call
+
+O114 ENDIF
+
+
+O115 IF[#<_vertice> EQ 1]   ( -----hembra vertice Radio ) 
+
+     O201 IF [#<_vertice_medida> LT [#<_tool_diametro>/2]]
+
+                 #<_vertice_medida> = [#<_tool_diametro>/2]
+     
+     O201 ENDIF
+     
+     #<_vertice_medida>=[#<_vertice_medida> -[#<_tool_diametro>/2]]
+     #<_aux_x> = [[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]]
+     #<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+
+     #<_aux_vertice_medida> = #<_vertice_medida>
+
+
+     G90 Z[#<_cero_z> + #<_planoreferencia>] 
+     G1 Z#<_cero_z> F#<_tool_bajada> 
+     G1G91 X#<_aux_x> Y#<_aux_y>F#<_tool_avance>                          
+     O104 call
+
+O115 ENDIF
+
+
+O116 IF[#<_vertice> EQ 2]   ( -----hembra vertice Chaflan ) 
+
+     O201 IF [#<_vertice_medida> LT [#<_tool_diametro>/2]]
+
+                 #<_vertice_medida> = [#<_tool_diametro>/2]
+     
+     O201 ENDIF
+
+     #<_vertice_medida>=[#<_vertice_medida> -[#<_tool_diametro>/2]]
+     #<_aux_x> = [[#<_longuitud_x>/2]-#<_vertice_medida>-[#<_tool_diametro>/2]]
+     #<_aux_y> = [[#<_longuitud_y>/2]-[#<_tool_diametro>/2]]
+
+     #<_aux_vertice_medida> = #<_vertice_medida>
+     
+
+     G0G91 X#<_aux_x> Y#<_aux_y>   
+     G90 Z[#<_cero_z> + #<_planoreferencia>]                         
+     G1 Z#<_cero_z> F#<_tool_bajada> 
+     O105 call
+
+O116 ENDIF
+
+
+
+O113 ENDIF                  (<---Fin evaluacion Perfil Hembra)
+(---------------------------------------------------------------------------)
+
+
+
+
+
+
+
+(-------------------------bloque finalizacion programa----------------------)
+G0 G90
+M9                                 (Apago soluble) 
+M5                                 (Apago Husillo)
+G53 G0 Z0                          (Mandar a referencia eje z)
+M30                                (Fin de ejecucion de programa con retorno al inicio)
+
+
