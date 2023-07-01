@@ -1,6 +1,8 @@
 # LinuxCnCam
 Sistema Conversacional ISO Parametrico Para LinuxCnC
 ![LinuxCnCam_Portada_Facebook](https://github.com/robotmatic/LinuxCnCam/assets/58271623/8424d9bf-4096-4d2e-a009-5ca3de4ea1af)
+https://www.facebook.com/Linuxcncam
+
 -LinuxCnCam es un proyecto que en su fase inicial pretende ser una biblioteca de rutinas iso de códigos G con la utilidad de poder generar trabajos típicos de mecanizado para máquinas de ejes cartesianos como tornos , fresadoras y routers de 2, 3 y 4 ejes, que sean accionados mediante el software de control LinuxCnC.
 
 -El motivo de que exista un proyecto como LinuxCnCam es rescatar y mantener una tecnologia de trabajo para máquinas CNC muy utilizadas en las épocas previas a los sistemas Cad/Cam gráficos.
